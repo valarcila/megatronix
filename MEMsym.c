@@ -12,6 +12,7 @@ typedef struct {
 	unsigned char Data[TAM_LINEA];
 } T_CACHE_LINE;
 
+void LeerRAM(unsigned char *Simul_RAM);
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
 void VolcarCACHE(T_CACHE_LINE *tbl);
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
@@ -19,17 +20,21 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
 
 void main(int argc, char **argv){
 
-	T_CACHE_LINE cache_lines[NUM_FILAS];
-	unsigned char Simul_RAM[4096];
 	int globaltime = 0;
 	int numfallos = 0;
+
+	T_CACHE_LINE tbl[NUM_FILAS];
+	LimpiarCACHE(tbl);
+	
+	unsigned char Simul_RAM[4096];
 	LeerRAM(Simul_RAM);
 
-	
+	unsigned int addr;
 }
 
 void LeerRAM(unsigned char *Simul_RAM){
 	FILE *RAM = NULL;
+
 	RAM = fopen("CONTENTS_RAM.bin", "rb");
 	if (!RAM){
 		printf("error al abrir CONTENTS_RAM.bin");
@@ -46,7 +51,7 @@ void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
 	for (int i = 0; i < NUM_FILAS; i++){
 		// 0x indicar hexadecimal
 		tbl[i].ETQ = 0xFF;
-		for (int j = 0; j < TAM_LINEA; i++){
+		for (int j = 0; j < TAM_LINEA; j++){
 			tbl[i].Data[j] = 0x23;
 		}
 	}
@@ -57,7 +62,17 @@ void VolcarCACHE(T_CACHE_LINE *tbl){
 }
 
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque){
+	/* 11 10 9 8 7 | 6 5 4 | 3 2 1 0
+	   etiqueta      línea   palabra 	
+	*/
 
+	// &, AND bit a bit
+	*palabra = addr & 0xF;
+
+	// >>, mover posiciones derecha
+	*linea = (addr >> 4) & 0x7;
+	*ETQ = (addr >> 7) & 0x1F;
+	*bloque = (addr >> 4);
 }
 
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
