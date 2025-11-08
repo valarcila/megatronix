@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TAM_LINEA 8
 #define NUM_FILAS 8
+#define TAM_LINEA 16
 
 typedef struct {
 	unsigned char ETQ;
@@ -18,11 +18,22 @@ void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
 
 void main(int argc, char **argv){
-	printf("prueba");
+
+	T_CACHE_LINE cache_lines[NUM_FILAS];
+	unsigned char Simul_RAM[4096];
+	int globaltime = 0;
+	int numfallos = 0;
+
 }
 
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
-
+	for (int i = 0; i < NUM_FILAS; i++){
+		// 0x indicar hexadecimal
+		tbl[i].ETQ = 0xFF;
+		for (int j = 0; j < TAM_LINEA; i++){
+			tbl[i].Data[j] = 0x23;
+		}
+	}
 }
 
 void VolcarCACHE(T_CACHE_LINE *tbl){
