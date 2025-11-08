@@ -23,7 +23,23 @@ void main(int argc, char **argv){
 	unsigned char Simul_RAM[4096];
 	int globaltime = 0;
 	int numfallos = 0;
+	LeerRAM(Simul_RAM);
 
+	
+}
+
+void LeerRAM(unsigned char *Simul_RAM){
+	FILE *RAM = NULL;
+	RAM = fopen("CONTENTS_RAM.bin", "rb");
+	if (!RAM){
+		printf("error al abrir CONTENTS_RAM.bin");
+	}
+
+	fseek(RAM, 0, SEEK_END);
+	long size = ftell(RAM);
+	rewind(RAM);
+	fread(Simul_RAM, sizeof(unsigned char), size, RAM);
+	fclose(RAM);
 }
 
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
