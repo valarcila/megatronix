@@ -1,5 +1,3 @@
-
-
 Funcion Limpiar chache
 MEMsym inicializa a xFF (hexadecimal) los campos Label y a x23
 (hexa) todos los campos de datos de la caché.
