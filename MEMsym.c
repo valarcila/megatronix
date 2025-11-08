@@ -7,6 +7,7 @@
 
 #define NUM_FILAS 8
 #define TAM_LINEA 16
+#define MAX_LINEA 100
 
 typedef struct {
 	unsigned char ETQ;
@@ -15,11 +16,14 @@ typedef struct {
 
 void LeerRAM(unsigned char *Simul_RAM);
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
+char *LeerLineaArchivo(FILE *fd);
 void VolcarCACHE(T_CACHE_LINE *tbl);
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
 
 int main(int argc, char **argv){
+
+	char *texto[100]={0};
 
 	int globaltime = 0, numaccesos = 0, numfallos = 0;
 
@@ -29,43 +33,69 @@ int main(int argc, char **argv){
 	unsigned char Simul_RAM[4096];
 	LeerRAM(Simul_RAM);
 
-	unsigned int addr;
 	int ETQ, linea, palabra, bloque;
+	char *lineaLeida = {0};
 
 	FILE *CPU = NULL;
 
 	CPU = fopen("accesos_memoria.txt", "r");
 	if (!CPU){
-		printf("Error al abrir accesos_memoria.txt");
-		exit (-1);
+		printf("\nError al abrir accesos_memoria.txt");
+		return -1;
 	}
 
-	char *lineaLeida = (CPU);
-	unsigned int linea_bi = 0;
-	if (lineaLeida != NULL){
-		linea_bi = (unsigned int)strtoul(lineaLeida, NULL, 16);
-	}
+	while ((lineaLeida = LeerLineaArchivo(CPU))!= NULL){
+		numaccesos++;
+		int validez = 0;
+		globaltime += 1;
 
-	
-
-	ParsearDireccion(linea_bi, &ETQ, &palabra, &linea, &bloque);
-
-	if(tbl[linea].ETQ != (unsigned char) ETQ){
-		numfallos++;
-		printf("T: %d, Fallo de CACHE %d, ADDR %04X Label %X linea %02X palabra %02X bloque %02X", globaltime, numfallos, addr, ETQ, linea, palabra, bloque);
 		
-		TratarFallo(tbl, Simul_RAM, ETQ, linea, bloque);
-	} else {
-		unsigned char dato = tbl[linea].Data[palabra];
-		printf("T: %d, Acierto de CACHE, ADDR %04X Label %X linea %02X palabra %02X DATO %02X", globaltime, addr, ETQ, linea, palabra, dato);
+		unsigned int addr = 0;
+		if (lineaLeida != NULL){
+			addr = (unsigned int)strtoul(lineaLeida, NULL, 16);
+		}
+		
+		ParsearDireccion(addr, &ETQ, &palabra, &linea, &bloque);
+			
+		while(validez!= 1){
+			if(tbl[linea].ETQ != (unsigned char) ETQ){
+				numfallos++;
+				printf("\nT: %d, Fallo de CACHE %d, ADDR %04X Label %X linea %02X palabra %02X bloque %02X", globaltime, numfallos, addr, ETQ, linea, palabra, bloque);
+				globaltime += 20;
+				TratarFallo(tbl, Simul_RAM, ETQ, linea, bloque);
+			} else {
+				validez = 1;
+				unsigned char dato = tbl[linea].Data[palabra];
+				*texto+= dato;
+				printf("\nT: %d, Acierto de CACHE, ADDR %04X Label %X linea %02X palabra %02X DATO %02X", globaltime, addr, ETQ, linea, palabra, dato);
+				printf("\n");
+				VolcarCACHE(tbl);
+				
+			}
+		}
+		
+		
 	}
-
 	fclose(CPU);
 
-	float tiempomedio = (float) globaltime / numaccesos;
-	printf("Accesos totales = %d, fallos = %d, tiempo medio = %d\n", numaccesos, numfallos, tiempomedio);
+	float tiempomedio = (float) globaltime / (float)numaccesos;
+	printf("\nAccesos totales = %d, fallos = %d, tiempo medio = %.2f\n", numaccesos, numfallos, tiempomedio);
 
-	// texto leído
+	FILE *bin = fopen("CONTENTS_CACHE.bin", "wb");
+	if (bin == NULL) {
+		printf("\nError al abrir CONTENTS_CACHE.bin\n");
+		return -1;
+	}
+
+	for (int linea= 0; linea < 8; linea++) {
+		for (int palabra = 0; palabra < 16; palabra++) {
+			unsigned char dato = tbl[linea].Data[palabra];
+			fwrite(&dato, sizeof(unsigned char), 1, bin);
+		}
+		unsigned char salto = '\n';
+    	fwrite(&salto, sizeof(unsigned char), 1, bin);
+	}
+	fclose(bin);
 
 	return 0;
 }
@@ -75,12 +105,33 @@ void LeerRAM(unsigned char *Simul_RAM){
 
 	RAM = fopen("CONTENTS_RAM.bin", "rb");
 	if (!RAM){
-		printf("Error al abrir CONTENTS_RAM.bin");
-		exit (-1);
+		printf("\nError al abrir CONTENTS_RAM.bin");
+		return;
 	}
 
 	fread(Simul_RAM, sizeof(unsigned char), 4096, RAM);
 	fclose(RAM);
+}
+
+char *LeerLineaArchivo(FILE *fd){
+	
+	static char linea[MAX_LINEA] = {0};
+    int c = '\0';
+	int tam = 0;
+
+    if (feof(fd)) {
+		return NULL;
+	}
+    while ((c = fgetc(fd)) != EOF && c != '\n') {
+        if (tam < MAX_LINEA - 1) {
+            linea[tam++] = (char)c;
+        }
+    }
+    if (tam == 0 && c == EOF) {
+		return NULL;
+	}
+    linea[tam] = '\0';
+    return linea;
 }
 
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
@@ -96,7 +147,7 @@ void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
 void VolcarCACHE(T_CACHE_LINE *tbl){
 	for (int i = 0; i < NUM_FILAS; i++){
 		// imprimir etiqueta
-		printf("%02X", tbl[i].ETQ);
+		printf("%02X ", tbl[i].ETQ);
 		
 		// imprimir datos, 15 a 0
 		printf("Datos: ");
@@ -118,20 +169,20 @@ void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int
 	// >>, mover posiciones derecha
 	*linea = (addr >> 4) & 0x7;
 	*ETQ = (addr >> 7) & 0x1F;
-	*bloque = addr / 4;
+	*bloque = addr >> 4;
 }
 
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
-	printf("Cargando el bloque %02X en la linea %02X", bloque, linea);
-	
+    printf("\nCargando el bloque %02X en la linea %02X\n", bloque, linea);
+    
 	// actualizar etiqueta
-	tbl[linea].ETQ = (unsigned char) ETQ;
+    tbl[linea].ETQ = (unsigned char) ETQ;
 
 	// inicio bloque en RAM
-	int inicio = bloque * TAM_LINEA;
+    int inicio = bloque * TAM_LINEA;
 
 	// copiar 16 B bloque desde RAM a CACHÉ
-	for (int i = 0; i < TAM_LINEA; i++){
-		tbl[linea].Data[i] = (unsigned char) MRAM[inicio + i];
-	}
+    for (int i = 0; i < TAM_LINEA; i++){
+            tbl[linea].Data[i] = MRAM[inicio + i];
+    }
 }
