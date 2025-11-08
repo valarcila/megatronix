@@ -1,0 +1,66 @@
+variables
+
+typedef struct {
+	unsigned char ETQ;
+	unsigned char Data[TAM_LINEA];
+} T_CACHE_LINE;
+
+T_CACHE_LINE tbl[NUM_FILAS];
+
+int globaltime = 0;
+int numfallos = 0;
+int numaccesos = 0;
+float tiempomedio = globaltime / numaccesos;
+
+unsigned char Simul_RAM[4096];
+    CONTENTS_RAM.bin
+
+char caracter[100];
+
+
+protocolo
+
+1 leer dirección accesos_memoria.txt
+
+2 obtener línea
+
+3 comprobar etiqueta == label
+  a si no
+    numfallos++;
+    "T: %d, Fallo de CACHE %d, ADDR %04X Label %X linea %02X palabra %02X bloque %02X"
+    globaltime += 20;
+    copiar bloque RAM en caché
+
+  b si sí
+    "T: %d, Acierto de CACHE, ADDR %04X Label %X linea %02X palabra %02X DATO %02X"
+    añadir carácter leido a caracter[]
+
+4 volcar caché
+  datos izquierda a derecha
+
+5 sleep(1);
+
+6 imprimir accesos totales, fallos y tiempo medio
+
+7 volcar contenidos 128 B (8 líneas, 14 B) caché en CONTENTS_CACHE.bin
+  B 0, B 0 caché y B 128, B 15 línea 15
+
+
+funciones
+
+void LeerRAM(unsigned char *Simul_RAM);
+  leer CONTENTS_RAM.bin y pasar a Simul_RAM
+  si no lee fichero return -1
+
+void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
+	inicializar etiqueta a 0xFF y datos a 0x23
+
+void VolcarCACHE(T_CACHE_LINE *tbl);
+  imprimir array struct, etiqueta y datos
+
+void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque); 
+  separar dirección en etiqueta, palabra y línea
+
+void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque); 
+  actualizar etiqueta
+  copiar bloque de RAM en caché
