@@ -87,6 +87,7 @@ int main(int argc, char **argv){
 				VolcarCACHE(tbl);
 			}
 		}
+		sleep(1);
 	}
 	fclose(CPU);
 
