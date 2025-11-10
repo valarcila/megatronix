@@ -1,2 +1,2 @@
-Ivan Garcia-Romero Perez
-Valeria Arcila Rodriguez
+Iván García-Romero Pérez
+Valeria Arcila Rodríguez
