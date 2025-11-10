@@ -50,7 +50,11 @@ funciones
 
 void LeerRAM(unsigned char *Simul_RAM);
   leer CONTENTS_RAM.bin y pasar a Simul_RAM
-  si no lee fichero return -1
+  si no lee fichero return
+
+char *LeerLineaFichero(FILE *fd);
+  leer línea fichero 
+  si final fichero return NULL
 
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
 	inicializar etiqueta a 0xFF y datos a 0x23
