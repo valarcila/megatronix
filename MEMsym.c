@@ -1,12 +1,16 @@
-/*	megatronix
+/*	MEGATRONIX
+	SSOO
+	Iván García-Romero Pérez
+	Valeria Arcila Rodríguez
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-// número bloques RAM = número líneas caché
-#define NUM_FILAS 8
+// num líneas = 8 líneas = 2³ líneas
+#define NUM_LINEAS 8
+// tam bloque RAM = tam línea caché = 16 B = 2⁴ B
 #define TAM_LINEA 16
 #define MAX_LINEA 100
 #define MAX_CARACTERES 100
@@ -18,7 +22,7 @@ typedef struct {
 
 void LeerRAM(unsigned char *Simul_RAM);
 char *LeerLineaFichero(FILE *fd);
-void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]);
+void LimpiarCACHE(T_CACHE_LINE tbl[NUM_LINEAS]);
 void VolcarCACHE(T_CACHE_LINE *tbl);
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque);
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque);
@@ -30,14 +34,17 @@ int main(int argc, char **argv){
 	int numfallos = 0;
 	float tiempomedio = 0;
 
-	T_CACHE_LINE tbl[NUM_FILAS];
+	T_CACHE_LINE tbl[NUM_LINEAS];
 	LimpiarCACHE(tbl);
 	
 	unsigned char Simul_RAM[4096];
 	LeerRAM(Simul_RAM);
 
 	unsigned int addr = 0;
-	int ETQ, linea, palabra, bloque;
+	int ETQ = 0;
+	int linea = 0;
+	int palabra = 0;
+	int bloque = 0;
 
 	char *lineaFichero = {0};
 
@@ -54,7 +61,7 @@ int main(int argc, char **argv){
 
 	// leer accesos_memoria.txt
 	while ((lineaFichero = LeerLineaFichero(CPU))!= NULL){
-		globaltime += 1;
+		globaltime++;
 		numaccesos++;
 		addr = 0;
 		acierto = 0;
@@ -107,7 +114,7 @@ int main(int argc, char **argv){
 		printf("Error al abrir CONTENTS_CACHE.bin\n");
 		return -1;
 	}
-	for (int linea = 0; linea < NUM_FILAS; linea++) {
+	for (int linea = 0; linea < NUM_LINEAS; linea++) {
 		for (int palabra = 0; palabra < TAM_LINEA; palabra++) {
 			// leer B línea
 			unsigned char data = tbl[linea].Data[palabra];
@@ -159,8 +166,8 @@ char *LeerLineaFichero(FILE *fd){
     return linea;
 }
 
-void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
-	for (int i = 0; i < NUM_FILAS; i++){
+void LimpiarCACHE(T_CACHE_LINE tbl[NUM_LINEAS]){
+	for (int i = 0; i < NUM_LINEAS; i++){
 		// 0x indicar hexadecimal
 		tbl[i].ETQ = 0xFF;
 		for (int j = 0; j < TAM_LINEA; j++){
@@ -170,7 +177,7 @@ void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
 }
 
 void VolcarCACHE(T_CACHE_LINE *tbl){
-	for (int i = 0; i < NUM_FILAS; i++){
+	for (int i = 0; i < NUM_LINEAS; i++){
 		// imprimir etiqueta
 		printf("%02X ", tbl[i].ETQ);
 		
@@ -185,13 +192,17 @@ void VolcarCACHE(T_CACHE_LINE *tbl){
 }
 
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque){
-	// 11 10 9 8 7 | 6 5 4 | 3 2 1 0
-	// etiqueta      línea   palabra 	
+	/*	tam línea = 16 B = 2⁴ B, 4 bits palabra
+		num líneas = 8 líneas = 2³ líneas, 3 bits línea
+	
+		11 10 9 8 7 | 6 5 4 | 3 2 1 0
+		etiqueta      línea   palabra
+	*/ 	
 
 	// &, AND bit a bit
 	*palabra = addr & 0xF;
 
-	// >>, mover posiciones derecha
+	// >>, desplazar bits derecha
 	*linea = (addr >> 4) & 0x7;
 	*ETQ = (addr >> 7) & 0x1F;
 	*bloque = addr >> 4;
