@@ -19,4 +19,4 @@ Salida. `logcache.txt` y `CONTENTS_CACHE.bin`
 
 ## Autores
 
-Iván García-Romero () y Valeria Arcila ()
+Iván García-Romero (@IvanGRP) y Valeria Arcila (@valarcila)
